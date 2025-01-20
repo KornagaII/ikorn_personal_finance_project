@@ -1,139 +1,175 @@
 import java.io.*;
 import java.util.*;
 
-public class FinanceManager {
-    private static final Scanner scanner = new Scanner(System.in);
-    private static final String DATA_FILE = "finance_data.txt";
-    private static final Map<String, User> users = new HashMap<>();
-    private static User currentUser;
+public class FinancialApp {
+    private static final String FILE_NAME = "users_data.dat";
+    private static final Map<String, UserAccount> userAccounts = new HashMap<>();
+    private static UserAccount activeUser;
+    private static final Scanner inputScanner = new Scanner(System.in);
 
     public static void main(String[] args) {
-        loadData();
+        loadUserAccounts();
         while (true) {
-            System.out.println("\n1. Авторизация\n2. Регистрация\n3. Выход");
-            String choice = scanner.nextLine();
-            switch (choice) {
-                case "1":
-                    login();
-                    break;
-                case "2":
-                    register();
-                    break;
-                case "3":
-                    saveData();
+            System.out.println("\n1. Войти\n2. Создать аккаунт\n3. Выход");
+            String option = inputScanner.nextLine();
+            switch (option) {
+                case "1" -> loginUser();
+                case "2" -> createAccount();
+                case "3" -> {
+                    saveUserAccounts();
                     System.exit(0);
-                default:
-                    System.out.println("Неверный ввод. Попробуйте снова.");
+                }
+                default -> System.out.println("Выберите правильный пункт.");
             }
         }
     }
 
-    private static void login() {
-        System.out.print("Логин: ");
-        String login = scanner.nextLine();
-        System.out.print("Пароль: ");
-        String password = scanner.nextLine();
+    private static void loginUser() {
+        System.out.print("Введите имя пользователя: ");
+        String username = inputScanner.nextLine();
+        System.out.print("Введите пароль: ");
+        String password = inputScanner.nextLine();
 
-        if (users.containsKey(login) && users.get(login).validatePassword(password)) {
-            currentUser = users.get(login);
-            System.out.println("Добро пожаловать, " + currentUser.getUsername() + "!");
-            manageWallet();
+        UserAccount user = userAccounts.get(username);
+        if (user != null && user.checkPassword(password)) {
+            activeUser = user;
+            System.out.println("Здравствуйте, " + activeUser.getName() + "!");
+            manageFinances();
         } else {
-            System.out.println("Неверный логин или пароль.");
+            System.out.println("Неверные учетные данные.");
         }
     }
 
-    private static void register() {
-        System.out.print("Введите логин: ");
-        String login = scanner.nextLine();
-        if (users.containsKey(login)) {
-            System.out.println("Пользователь с таким логином уже существует.");
+    private static void createAccount() {
+        System.out.print("Введите новый логин: ");
+        String username = inputScanner.nextLine();
+        if (userAccounts.containsKey(username)) {
+            System.out.println("Пользователь уже существует.");
             return;
         }
         System.out.print("Введите пароль: ");
-        String password = scanner.nextLine();
-        User user = new User(login, password);
-        users.put(login, user);
-        System.out.println("Регистрация завершена.");
+        String password = inputScanner.nextLine();
+        userAccounts.put(username, new UserAccount(username, password));
+        System.out.println("Аккаунт успешно создан.");
     }
 
-    private static void manageWallet() {
+    private static void manageFinances() {
         while (true) {
-            System.out.println("\n1. Добавить доход\n2. Добавить расход\n3. Установить бюджет\n4. Показать статистику\n5. Выйти");
-            String choice = scanner.nextLine();
+            System.out.println("\n1. Добавить доход\n2. Добавить расход\n3. Установить лимит\n4. Просмотреть отчет\n5. Назад");
+            String choice = inputScanner.nextLine();
             switch (choice) {
-                case "1":
-                    addIncome();
-                    break;
-                case "2":
-                    addExpense();
-                    break;
-                case "3":
-                    setBudget();
-                    break;
-                case "4":
-                    showStatistics();
-                    break;
-                case "5":
+                case "1" -> recordIncome();
+                case "2" -> recordExpense();
+                case "3" -> setSpendingLimit();
+                case "4" -> displayReport();
+                case "5" -> {
+                    activeUser = null;
                     return;
-                default:
-                    System.out.println("Неверный ввод. Попробуйте снова.");
+                }
+                default -> System.out.println("Неверный выбор.");
             }
         }
     }
 
-    private static void addIncome() {
-        System.out.print("Категория дохода: ");
-        String category = scanner.nextLine();
-        System.out.print("Сумма: ");
-        double amount = Double.parseDouble(scanner.nextLine());
-        currentUser.addIncome(category, amount);
+    private static void recordIncome() {
+        System.out.print("Введите категорию дохода: ");
+        String category = inputScanner.nextLine();
+        System.out.print("Введите сумму: ");
+        double amount = Double.parseDouble(inputScanner.nextLine());
+        activeUser.addIncome(category, amount);
         System.out.println("Доход добавлен.");
     }
 
-    private static void addExpense() {
-        System.out.print("Категория расхода: ");
-        String category = scanner.nextLine();
-        System.out.print("Сумма: ");
-        double amount = Double.parseDouble(scanner.nextLine());
-        if (currentUser.addExpense(category, amount)) {
-            System.out.println("Расход добавлен.");
+    private static void recordExpense() {
+        System.out.print("Введите категорию расхода: ");
+        String category = inputScanner.nextLine();
+        System.out.print("Введите сумму: ");
+        double amount = Double.parseDouble(inputScanner.nextLine());
+        if (activeUser.addExpense(category, amount)) {
+            System.out.println("Расход записан.");
         } else {
-            System.out.println("Недостаточно средств.");
+            System.out.println("Недостаточно средств для этой операции.");
         }
     }
 
-    private static void setBudget() {
+    private static void setSpendingLimit() {
         System.out.print("Категория: ");
-        String category = scanner.nextLine();
-        System.out.print("Бюджет: ");
-        double budget = Double.parseDouble(scanner.nextLine());
-        currentUser.setBudget(category, budget);
-        System.out.println("Бюджет установлен.");
+        String category = inputScanner.nextLine();
+        System.out.print("Введите лимит: ");
+        double limit = Double.parseDouble(inputScanner.nextLine());
+        activeUser.setLimit(category, limit);
+        System.out.println("Лимит установлен.");
     }
 
-    private static void showStatistics() {
-        currentUser.showStatistics();
+    private static void displayReport() {
+        activeUser.showReport();
     }
 
-    private static void saveData() {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(DATA_FILE))) {
-            oos.writeObject(users);
+    private static void saveUserAccounts() {
+        try (ObjectOutputStream outStream = new ObjectOutputStream(new FileOutputStream(FILE_NAME))) {
+            outStream.writeObject(userAccounts);
         } catch (IOException e) {
-            System.out.println("Ошибка при сохранении данных.");
+            System.out.println("Ошибка сохранения данных.");
         }
     }
 
     @SuppressWarnings("unchecked")
-    private static void loadData() {
-        File file = new File(DATA_FILE);
+    private static void loadUserAccounts() {
+        File file = new File(FILE_NAME);
         if (file.exists()) {
-            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
-                Map<String, User> loadedUsers = (Map<String, User>) ois.readObject();
-                users.putAll(loadedUsers);
+            try (ObjectInputStream inStream = new ObjectInputStream(new FileInputStream(file))) {
+                Map<String, UserAccount> accounts = (Map<String, UserAccount>) inStream.readObject();
+                userAccounts.putAll(accounts);
             } catch (IOException | ClassNotFoundException e) {
-                System.out.println("Ошибка при загрузке данных.");
+                System.out.println("Ошибка загрузки данных.");
             }
         }
     }
 }
+
+class UserAccount implements Serializable {
+    private final String name;
+    private final String password;
+    private final Map<String, Double> income = new HashMap<>();
+    private final Map<String, Double> expenses = new HashMap<>();
+    private final Map<String, Double> limits = new HashMap<>();
+
+    public UserAccount(String name, String password) {
+        this.name = name;
+        this.password = password;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public boolean checkPassword(String inputPassword) {
+        return password.equals(inputPassword);
+    }
+
+    public void addIncome(String category, double amount) {
+        income.merge(category, amount, Double::sum);
+    }
+
+    public boolean addExpense(String category, double amount) {
+        if (income.values().stream().mapToDouble(Double::doubleValue).sum() >= amount) {
+            expenses.merge(category, amount, Double::sum);
+            return true;
+        }
+        return false;
+    }
+
+    public void setLimit(String category, double limit) {
+        limits.put(category, limit);
+    }
+
+    public void showReport() {
+        System.out.println("\nДоходы:");
+        income.forEach((cat, amt) -> System.out.println(cat + ": " + amt));
+        System.out.println("\nРасходы:");
+        expenses.forEach((cat, amt) -> System.out.println(cat + ": " + amt));
+        System.out.println("\nЛимиты:");
+        limits.forEach((cat, lim) -> System.out.println(cat + ": " + lim));
+    }
+}
+
