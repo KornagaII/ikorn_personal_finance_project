@@ -1,57 +1,57 @@
 import java.io.*;
 import java.util.*;
 
-public class User implements Serializable {
-    private final String username;
-    private final String password;
-    private final Map<String, Double> income = new HashMap<>();
-    private final Map<String, Double> expenses = new HashMap<>();
-    private final Map<String, Double> budgets = new HashMap<>();
+public class UserAccount implements Serializable {
+    private final String name;
+    private final String secret;
+    private final Map<String, Double> earnings = new HashMap<>();
+    private final Map<String, Double> spendings = new HashMap<>();
+    private final Map<String, Double> limits = new HashMap<>();
 
-    public User(String username, String password) {
-        this.username = username;
-        this.password = password;
+    public UserAccount(String name, String secret) {
+        this.name = name;
+        this.secret = secret;
     }
 
-    public String getUsername() {
-        return username;
+    public String getName() {
+        return name;
     }
 
-    public boolean validatePassword(String inputPassword) {
-        return password.equals(inputPassword);
+    public boolean authenticate(String inputSecret) {
+        return secret.equals(inputSecret);
     }
 
-    public void addIncome(String category, double amount) {
-        income.put(category, income.getOrDefault(category, 0.0) + amount);
+    public void recordEarnings(String category, double amount) {
+        earnings.merge(category, amount, Double::sum);
     }
 
-    public boolean addExpense(String category, double amount) {
-        double totalIncome = income.values().stream().mapToDouble(Double::doubleValue).sum();
-        double totalExpenses = expenses.values().stream().mapToDouble(Double::doubleValue).sum();
-        if (totalIncome - totalExpenses >= amount) {
-            expenses.put(category, expenses.getOrDefault(category, 0.0) + amount);
+    public boolean recordSpending(String category, double amount) {
+        double totalEarnings = earnings.values().stream().mapToDouble(Double::doubleValue).sum();
+        double totalSpendings = spendings.values().stream().mapToDouble(Double::doubleValue).sum();
+        if (totalEarnings - totalSpendings >= amount) {
+            spendings.merge(category, amount, Double::sum);
             return true;
         }
         return false;
     }
 
-    public void setBudget(String category, double budget) {
-        budgets.put(category, budget);
+    public void assignLimit(String category, double limit) {
+        limits.put(category, limit);
     }
 
-    public void showStatistics() {
-        System.out.println("\nСтатистика:");
-        double totalIncome = income.values().stream().mapToDouble(Double::doubleValue).sum();
-        double totalExpenses = expenses.values().stream().mapToDouble(Double::doubleValue).sum();
-        System.out.println("Общий доход: " + totalIncome);
-        System.out.println("Общие расходы: " + totalExpenses);
+    public void displayReport() {
+        System.out.println("\nФинансовый отчет:");
+        double totalEarnings = earnings.values().stream().mapToDouble(Double::doubleValue).sum();
+        double totalSpendings = spendings.values().stream().mapToDouble(Double::doubleValue).sum();
+        System.out.println("Общий доход: " + totalEarnings);
+        System.out.println("Общие расходы: " + totalSpendings);
 
-        System.out.println("\nБюджет по категориям:");
-        for (String category : budgets.keySet()) {
-            double budget = budgets.get(category);
-            double spent = expenses.getOrDefault(category, 0.0);
-            System.out.printf("Категория: %s, Бюджет: %.2f, Потрачено: %.2f, Остаток: %.2f\n",
-                    category, budget, spent, budget - spent);
-        }
+        System.out.println("\nКатегории с лимитами:");
+        limits.forEach((category, limit) -> {
+            double spent = spendings.getOrDefault(category, 0.0);
+            System.out.printf("Категория: %s, Лимит: %.2f, Израсходовано: %.2f, Остаток: %.2f%n",
+                    category, limit, spent, limit - spent);
+        });
     }
 }
+
